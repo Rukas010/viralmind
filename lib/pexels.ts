@@ -1,28 +1,105 @@
 import { createClient } from 'pexels';
 
+// These search terms are tested to return usable vertical video from Pexels
 const STYLE_SEARCH_TERMS: Record<string, string[]> = {
-  'reddit-story': ['minecraft gameplay', 'subway surfers', 'satisfying slime', 'parkour city'],
-  'scary-facts': ['dark forest drone', 'abandoned building', 'deep ocean underwater', 'night fog street'],
-  'would-you-rather': ['colorful neon lights', 'roller coaster pov', 'abstract liquid', 'spinning ferris wheel'],
-  motivation: ['city timelapse night', 'workout gym training', 'running athlete sunrise', 'mountain summit clouds'],
-  'ai-wisdom': ['technology circuit board', 'space galaxy nebula', 'data center servers', 'futuristic city'],
-  'hot-takes': ['fire flames close', 'crowd cheering stadium', 'lightning storm', 'boxing match'],
-  'life-hacks': ['kitchen cooking overhead', 'home organization tidy', 'coffee making barista', 'desk workspace setup'],
-  'story-time': ['rainy window night', 'cozy fireplace', 'night drive city', 'ocean waves sunset'],
-  conspiracy: ['surveillance camera footage', 'dark clouds storm', 'government building night', 'eye close up macro'],
-  'roast-me': ['fire explosion slow motion', 'crowd laughing audience', 'dramatic spotlight stage', 'fireworks close up'],
+  'reddit-story': [
+    'mobile game colorful',
+    'running game obstacle',
+    'satisfying sand cutting',
+    'soap cutting asmr',
+    'colorful slime mixing',
+    'water slide pov',
+  ],
+  'scary-facts': [
+    'dark corridor walking',
+    'foggy forest night',
+    'deep sea creatures',
+    'abandoned hospital dark',
+    'thunderstorm night city',
+    'dark tunnel underground',
+  ],
+  'would-you-rather': [
+    'neon lights city night',
+    'roller coaster pov ride',
+    'colorful liquid mixing',
+    'arcade game neon',
+    'carnival ride spinning',
+    'colorful smoke abstract',
+  ],
+  motivation: [
+    'person running sunrise',
+    'city skyline timelapse night',
+    'weightlifting gym workout',
+    'luxury car driving',
+    'mountain climbing summit',
+    'boxing training intense',
+  ],
+  'ai-wisdom': [
+    'circuit board macro',
+    'space stars nebula',
+    'robot technology',
+    'digital rain code',
+    'futuristic tunnel light',
+    'hologram technology',
+  ],
+  'hot-takes': [
+    'fire close up slow motion',
+    'crowd cheering stadium',
+    'lightning bolt storm',
+    'explosion slow motion',
+    'debate microphone stage',
+    'boxing ring fight',
+  ],
+  'life-hacks': [
+    'cooking kitchen overhead',
+    'cleaning organizing home',
+    'coffee latte art',
+    'desk workspace minimal',
+    'grocery shopping store',
+    'laundry folding',
+  ],
+  'story-time': [
+    'rain on window night',
+    'fireplace cozy room',
+    'driving night city lights',
+    'sunset ocean waves',
+    'train window moving',
+    'walking street night',
+  ],
+  conspiracy: [
+    'eye close up macro iris',
+    'security camera footage',
+    'dark clouds time lapse',
+    'pyramid egypt aerial',
+    'satellite space orbit',
+    'documents papers close',
+  ],
+  'roast-me': [
+    'fire flames slow motion',
+    'audience laughing comedy',
+    'spotlight stage dark',
+    'fireworks colorful night',
+    'microphone comedy stage',
+    'crowd reaction shocked',
+  ],
 };
 
-const GAMEPLAY_SEARCH_TERMS = [
-  'minecraft gameplay',
-  'subway surfers gameplay',
-  'satisfying soap cutting',
-  'sand cutting asmr',
-  'slime satisfying',
-  'water flow satisfying',
+// Satisfying / gameplay style clips that work as universal backgrounds
+const GAMEPLAY_TERMS = [
+  'mobile game obstacle run',
+  'satisfying soap cutting asmr',
+  'satisfying sand cutting kinetic',
+  'colorful slime mixing satisfying',
+  'water flow satisfying close',
+  'marble run colorful',
+  'domino chain reaction',
+  'paint mixing satisfying',
+  'cake decorating satisfying',
+  'hydraulic press crushing',
+  'candy making factory',
+  'pottery wheel spinning clay',
 ];
 
-// Common words to filter out when extracting keywords from topic
 const STOP_WORDS = new Set([
   'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
   'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
@@ -50,17 +127,14 @@ function buildSearchQueries(topic: string, style: string): string[] {
   const keywords = extractKeywords(topic);
   const queries: string[] = [];
 
-  // Topic-based searches (most relevant)
   if (keywords.length >= 2) {
     queries.push(keywords.slice(0, 3).join(' '));
   }
   if (keywords.length >= 1) {
     queries.push(`${keywords[0]} cinematic`);
-    queries.push(`${keywords[0]} dramatic`);
   }
 
-  // Style fallbacks
-  const styleFallbacks = STYLE_SEARCH_TERMS[style] || ['abstract background'];
+  const styleFallbacks = STYLE_SEARCH_TERMS[style] || GAMEPLAY_TERMS;
   queries.push(...styleFallbacks);
 
   return queries;
@@ -68,25 +142,26 @@ function buildSearchQueries(topic: string, style: string): string[] {
 
 async function searchPexelsVideo(
   client: ReturnType<typeof createClient>,
-  query: string
+  query: string,
+  page: number = 1
 ): Promise<string | null> {
   try {
     const response = await client.videos.search({
       query,
-      per_page: 10,
+      per_page: 15,
       orientation: 'portrait',
       size: 'medium',
+      page,
     });
 
     if ('videos' in response && response.videos.length > 0) {
-      const randomVideo =
-        response.videos[Math.floor(Math.random() * response.videos.length)];
-      const videoFile =
-        randomVideo.video_files
+      const video = response.videos[Math.floor(Math.random() * response.videos.length)];
+      const file =
+        video.video_files
           .filter((f) => f.quality === 'hd' && f.width && f.width <= 1920)
           .sort((a, b) => (b.width || 0) - (a.width || 0))[0] ||
-        randomVideo.video_files[0];
-      return videoFile?.link || null;
+        video.video_files[0];
+      return file?.link || null;
     }
     return null;
   } catch {
@@ -104,14 +179,12 @@ export async function getBackgroundVideo(
   const client = createClient(apiKey);
   const queries = topic
     ? buildSearchQueries(topic, style)
-    : STYLE_SEARCH_TERMS[style] || ['abstract background'];
+    : STYLE_SEARCH_TERMS[style] || GAMEPLAY_TERMS;
 
-  // Try topic-based queries first, then fall back to style defaults
   for (const query of queries) {
     const url = await searchPexelsVideo(client, query);
     if (url) return url;
   }
-
   return null;
 }
 
@@ -126,72 +199,44 @@ export async function getMultipleBackgroundClips(
   const client = createClient(apiKey);
   const queries = topic
     ? buildSearchQueries(topic, style)
-    : STYLE_SEARCH_TERMS[style] || ['abstract background'];
+    : STYLE_SEARCH_TERMS[style] || GAMEPLAY_TERMS;
 
   const urls: string[] = [];
-  let queryIndex = 0;
+  const usedUrls = new Set<string>();
 
   for (let i = 0; i < count; i++) {
-    const query = queries[queryIndex % queries.length];
-    queryIndex++;
+    const query = queries[i % queries.length];
 
-    try {
-      const response = await client.videos.search({
-        query,
-        per_page: 10,
-        orientation: 'portrait',
-        size: 'medium',
-        page: i + 1,
-      });
-
-      if ('videos' in response && response.videos.length > 0) {
-        const randomVideo =
-          response.videos[Math.floor(Math.random() * response.videos.length)];
-        const videoFile =
-          randomVideo.video_files
-            .filter((f) => f.quality === 'hd' && f.width && f.width <= 1920)
-            .sort((a, b) => (b.width || 0) - (a.width || 0))[0] ||
-          randomVideo.video_files[0];
-        if (videoFile?.link) {
-          urls.push(videoFile.link);
-        }
+    for (let page = 1; page <= 3; page++) {
+      const url = await searchPexelsVideo(client, query, page);
+      if (url && !usedUrls.has(url)) {
+        urls.push(url);
+        usedUrls.add(url);
+        break;
       }
-    } catch (error) {
-      console.error(`Pexels error (clip ${i + 1}):`, error);
     }
   }
 
   return urls;
 }
 
-export async function getGameplayClip(): Promise<string | null> {
+export async function getGameplayClips(count: number = 3): Promise<string[]> {
   const apiKey = process.env.PEXELS_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return [];
 
   const client = createClient(apiKey);
-  const randomTerm =
-    GAMEPLAY_SEARCH_TERMS[Math.floor(Math.random() * GAMEPLAY_SEARCH_TERMS.length)];
+  const urls: string[] = [];
+  const usedUrls = new Set<string>();
+  const shuffled = [...GAMEPLAY_TERMS].sort(() => Math.random() - 0.5);
 
-  try {
-    const response = await client.videos.search({
-      query: randomTerm,
-      per_page: 10,
-      orientation: 'portrait',
-      size: 'medium',
-    });
-
-    if ('videos' in response && response.videos.length > 0) {
-      const randomVideo =
-        response.videos[Math.floor(Math.random() * response.videos.length)];
-      const videoFile =
-        randomVideo.video_files
-          .filter((f) => f.quality === 'hd' && f.width && f.width <= 1920)
-          .sort((a, b) => (b.width || 0) - (a.width || 0))[0] ||
-        randomVideo.video_files[0];
-      return videoFile?.link || null;
+  for (let i = 0; i < count; i++) {
+    const term = shuffled[i % shuffled.length];
+    const url = await searchPexelsVideo(client, term);
+    if (url && !usedUrls.has(url)) {
+      urls.push(url);
+      usedUrls.add(url);
     }
-    return null;
-  } catch {
-    return null;
   }
+
+  return urls;
 }

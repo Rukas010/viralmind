@@ -4,10 +4,10 @@ import React, { useState, useCallback } from 'react';
 import { Player } from '@remotion/player';
 import { BrainrotVideo } from '@/remotion/BrainrotVideo';
 import { VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS } from '@/remotion/constants';
-import { VIDEO_TEMPLATES, BackgroundClip, VideoTemplate } from '@/remotion/type';
+import { VIDEO_TEMPLATES, BackgroundClip } from '@/remotion/type';
 import { useAudioDuration } from '@/hooks/useAudioDuration';
 import { Button } from '@/components/ui/button';
-import { Play, Loader2, RefreshCw, Monitor } from 'lucide-react';
+import { Play, Loader2, RefreshCw, Monitor, Music } from 'lucide-react';
 
 interface VideoPreviewSectionProps {
   script: string;
@@ -22,7 +22,6 @@ export function VideoPreviewSection({
   voiceoverUrl,
   style,
   topic,
-  durationInSeconds,
 }: VideoPreviewSectionProps) {
   const [backgroundVideoUrl, setBackgroundVideoUrl] = useState<string | null>(null);
   const [clips, setClips] = useState<BackgroundClip[]>([]);
@@ -31,34 +30,25 @@ export function VideoPreviewSection({
   const [error, setError] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState('classic-brainrot');
 
-  // Detect actual audio duration
   const audioDuration = useAudioDuration(voiceoverUrl);
 
-  // Use actual audio duration if available, otherwise estimate
   const wordCount = script.split(/\s+/).filter((w) => w.length > 0).length;
-  const estimatedSeconds = durationInSeconds || Math.ceil(wordCount / 2.5);
-  const actualSeconds = audioDuration || estimatedSeconds;
+  const estimatedSeconds = Math.ceil(wordCount / 2.5);
 
-  // Add 1 second buffer at end so video doesn't cut off abruptly
-  const durationInFrames = Math.max(Math.ceil((actualSeconds + 1) * VIDEO_FPS), VIDEO_FPS);
+  // Use EXACT audio duration when available — no extra buffers
+  const hasVoiceover = !!voiceoverUrl;
+  const audioReady = !hasVoiceover || audioDuration !== null;
+  const actualSeconds = audioDuration || estimatedSeconds;
+  const durationInFrames = Math.max(Math.ceil(actualSeconds * VIDEO_FPS), VIDEO_FPS);
 
   const fetchBackgrounds = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const template = VIDEO_TEMPLATES.find(
-        (t: VideoTemplate) => t.id === selectedTemplate
-      );
-      const isGameplay =
-        template?.layout === 'classic' ||
-        template?.layout === 'split-story' ||
-        template?.layout === 'split-character';
-
-      const mode = isGameplay ? 'multiple' : 'multiple';
       const topicParam = topic ? `&topic=${encodeURIComponent(topic)}` : '';
       const res = await fetch(
-        `/api/get-background-video?style=${encodeURIComponent(style)}&mode=${mode}&count=3${topicParam}`
+        `/api/get-background-video?style=${encodeURIComponent(style)}&mode=multiple&count=3${topicParam}`
       );
       const data = await res.json();
 
@@ -87,7 +77,7 @@ export function VideoPreviewSection({
 
     setLoading(false);
     setShowPreview(true);
-  }, [style, topic, selectedTemplate, durationInFrames]);
+  }, [style, topic, durationInFrames]);
 
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6 backdrop-blur">
@@ -103,7 +93,7 @@ export function VideoPreviewSection({
               Pick a layout, then preview
               {audioDuration && (
                 <span className="text-purple-400">
-                  {' '}• Audio: {audioDuration.toFixed(1)}s detected
+                  {' '}• {audioDuration.toFixed(1)}s audio detected
                 </span>
               )}
             </p>
@@ -144,17 +134,30 @@ export function VideoPreviewSection({
         </div>
       </div>
 
+      {/* Audio detection state */}
+      {hasVoiceover && !audioReady && (
+        <div className="flex items-center gap-2 text-sm text-purple-400 mb-3">
+          <Music className="h-4 w-4 animate-pulse" />
+          <span>Detecting audio duration...</span>
+        </div>
+      )}
+
       {/* Preview */}
       {!showPreview ? (
         <Button
           onClick={fetchBackgrounds}
-          disabled={loading}
+          disabled={loading || !audioReady}
           className="w-full bg-purple-600 hover:bg-purple-700 text-white"
         >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Loading preview...
+            </>
+          ) : !audioReady ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Waiting for audio...
             </>
           ) : (
             <>
@@ -168,8 +171,8 @@ export function VideoPreviewSection({
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm text-gray-400">
               {actualSeconds.toFixed(1)}s
-              {audioDuration ? ' (from audio)' : ' (estimated)'}
-              {' '}• {wordCount} words • {VIDEO_FPS}fps
+              {audioDuration ? ' (synced to audio)' : ' (estimated)'}
+              {' '}• {wordCount} words
             </p>
             <Button
               variant="outline"
@@ -227,4 +230,4 @@ export function VideoPreviewSection({
       )}
     </div>
   );
-}   
+}

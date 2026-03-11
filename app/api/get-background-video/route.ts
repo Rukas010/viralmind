@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getBackgroundVideo,
   getMultipleBackgroundClips,
-  getGameplayClip,
+  getGameplayClips,
 } from '@/lib/pexels';
 
 export async function GET(req: NextRequest) {
@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
 
   try {
     if (mode === 'gameplay') {
-      const url = await getGameplayClip();
-      return NextResponse.json({ success: true, url, urls: url ? [url] : [] });
+      const urls = await getGameplayClips(count);
+      return NextResponse.json({ success: true, url: urls[0] || null, urls });
     }
 
     if (mode === 'multiple') {

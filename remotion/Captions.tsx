@@ -36,16 +36,13 @@ export const Captions: React.FC<CaptionsProps> = ({
   const words = script.split(/\s+/).filter((w) => w.length > 0);
   if (words.length === 0) return null;
 
-  // Split into groups
   const groups: string[][] = [];
   for (let i = 0; i < words.length; i += WORDS_PER_GROUP) {
     groups.push(words.slice(i, i + WORDS_PER_GROUP));
   }
 
-  const totalFrames = endFrame - startFrame;
-
-  // Add small buffer at start and end for natural feel
-  const bufferFrames = Math.floor(fps * 0.3);
+  // Minimal buffer — captions start almost immediately with audio
+  const bufferFrames = Math.floor(fps * 0.05);
   const activeStart = startFrame + bufferFrames;
   const activeEnd = endFrame - bufferFrames;
   const activeDuration = activeEnd - activeStart;
@@ -53,14 +50,12 @@ export const Captions: React.FC<CaptionsProps> = ({
   const framesPerGroup = activeDuration / groups.length;
   const relativeFrame = frame - activeStart;
 
-  // Which group is active
   const activeGroupIndex = Math.min(
     Math.max(Math.floor(relativeFrame / framesPerGroup), 0),
     groups.length - 1
   );
   const activeGroup = groups[activeGroupIndex];
 
-  // Frame within the current group
   const groupStartFrame = activeGroupIndex * framesPerGroup;
   const frameInGroup = relativeFrame - groupStartFrame;
   const framesPerWord = framesPerGroup / activeGroup.length;
@@ -69,23 +64,17 @@ export const Captions: React.FC<CaptionsProps> = ({
     activeGroup.length - 1
   );
 
-  // Don't render outside bounds
   if (frame < startFrame || frame > endFrame) return null;
 
-  // Spring animation for group entrance
   const groupSpring = spring({
-    frame: frame - (activeStart + groupStartFrame),
+    frame: Math.max(0, frame - (activeStart + groupStartFrame)),
     fps,
-    config: {
-      damping: 15,
-      stiffness: 200,
-      mass: 0.8,
-    },
+    config: { damping: 15, stiffness: 200, mass: 0.8 },
   });
 
   const groupOpacity = interpolate(
     frameInGroup,
-    [0, framesPerGroup * 0.05, framesPerGroup * 0.85, framesPerGroup],
+    [0, framesPerGroup * 0.04, framesPerGroup * 0.88, framesPerGroup],
     [0, 1, 1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );
@@ -125,7 +114,7 @@ export const Captions: React.FC<CaptionsProps> = ({
 
           const wordSpring = isActive
             ? spring({
-                frame: frame - (activeStart + groupStartFrame + i * framesPerWord),
+                frame: Math.max(0, frame - (activeStart + groupStartFrame + i * framesPerWord)),
                 fps,
                 config: { damping: 12, stiffness: 250, mass: 0.6 },
               })
@@ -151,7 +140,6 @@ export const Captions: React.FC<CaptionsProps> = ({
                 transform: `scale(${wordScale})`,
                 lineHeight: 1.2,
                 letterSpacing: '-0.02em',
-                transition: 'color 0.1s ease',
               }}
             >
               {word}
