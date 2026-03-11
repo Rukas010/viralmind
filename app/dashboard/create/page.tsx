@@ -1,5 +1,6 @@
 'use client'
 
+import { VideoPreviewSection } from '@/components/VideoPreviewSection';
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
@@ -476,6 +477,14 @@ export default function CreateVideoPage() {
                     </audio>
                   </div>
                 )}
+
+                {/* Video Preview */}
+                <VideoPreviewSection
+                  script={generatedScript}
+                  voiceoverUrl={voiceoverUrl || undefined}
+                  style={selectedTemplate?.slug || ''}
+                  durationInSeconds={duration}
+                />
 
                 <div className="flex gap-3 mt-2">
                   <Button
