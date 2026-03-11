@@ -1,9 +1,12 @@
 import React from 'react';
-import { AbsoluteFill, Video, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Video, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { BackgroundClip } from './type';
 
 interface BackgroundProps {
+  clips?: BackgroundClip[];
   videoUrl?: string;
   style: string;
+  region?: 'full' | 'top-half' | 'bottom-half';
 }
 
 const STYLE_GRADIENTS: Record<string, string> = {
@@ -19,45 +22,113 @@ const STYLE_GRADIENTS: Record<string, string> = {
   'roast-me': 'linear-gradient(180deg, #2e0a0a 0%, #4a1010 50%, #2e0a0a 100%)',
 };
 
-export const Background: React.FC<BackgroundProps> = ({ videoUrl, style }) => {
+const REGION_STYLES: Record<string, React.CSSProperties> = {
+  full: { top: 0, left: 0, right: 0, bottom: 0 },
+  'top-half': { top: 0, left: 0, right: 0, height: '50%' },
+  'bottom-half': { top: '50%', left: 0, right: 0, bottom: 0 },
+};
+
+export const Background: React.FC<BackgroundProps> = ({
+  clips,
+  videoUrl,
+  style,
+  region = 'full',
+}) => {
+  const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
 
+  const regionStyle = REGION_STYLES[region];
+  const regionHeight = region === 'full' ? height : height / 2;
+
+  // Build clip list — either multiple clips or single fallback
+  const clipList: BackgroundClip[] = clips && clips.length > 0
+    ? clips
+    : videoUrl
+    ? [{ url: videoUrl, startFrame: 0, endFrame: 99999 }]
+    : [];
+
   return (
-    <AbsoluteFill>
-      {/* Gradient fallback */}
+    <div style={{ position: 'absolute', overflow: 'hidden', ...regionStyle }}>
+      {/* Gradient base */}
       <div
         style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
           width,
-          height,
+          height: regionHeight,
           background: STYLE_GRADIENTS[style] || STYLE_GRADIENTS['reddit-story'],
         }}
       />
 
-      {/* Stock video layer */}
-      {videoUrl && (
-        <AbsoluteFill>
-          <Video
-            src={videoUrl}
-            style={{
-              width,
-              height,
-              objectFit: 'cover',
-            }}
-            muted
-          />
-        </AbsoluteFill>
-      )}
+      {/* Video clips with crossfade transitions */}
+      {clipList.map((clip, index) => {
+        const isActive = frame >= clip.startFrame && frame <= clip.endFrame;
+        if (!isActive) return null;
 
-      {/* Dark overlay for text readability */}
-      <AbsoluteFill>
-        <div
-          style={{
-            width,
-            height,
-            backgroundColor: videoUrl ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.1)',
-          }}
-        />
-      </AbsoluteFill>
-    </AbsoluteFill>
+        const TRANSITION_FRAMES = 15;
+
+        // Fade in at start
+        const fadeIn = interpolate(
+          frame,
+          [clip.startFrame, clip.startFrame + TRANSITION_FRAMES],
+          [0, 1],
+          { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+        );
+
+        // Fade out at end
+        const fadeOut = interpolate(
+          frame,
+          [clip.endFrame - TRANSITION_FRAMES, clip.endFrame],
+          [1, 0],
+          { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+        );
+
+        // Subtle zoom over time
+        const zoomProgress = interpolate(
+          frame,
+          [clip.startFrame, clip.endFrame],
+          [1, 1.08],
+          { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+        );
+
+        return (
+          <div
+            key={index}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              opacity: Math.min(fadeIn, fadeOut),
+            }}
+          >
+            <Video
+              src={clip.url}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transform: `scale(${zoomProgress})`,
+              }}
+              muted
+            />
+          </div>
+        );
+      })}
+
+      {/* Dark overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: clipList.length > 0 ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)',
+        }}
+      />
+    </div>
   );
 };

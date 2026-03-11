@@ -1,33 +1,48 @@
 import React from 'react';
-import { AbsoluteFill, Audio, useVideoConfig } from 'remotion';
-import { Background } from './Background';
-import { Captions } from './Captions';
+import { useVideoConfig } from 'remotion';
+import { ClassicBrainrot } from './templates/ClassicBrainrot';
+import { SplitStory } from './templates/SplitStory';
+import { SplitCharacter } from './templates/SplitCharacter';
+import { CinematicFull } from './templates/CinematicFull';
+import { BackgroundClip } from './type';
 
 export interface BrainrotVideoProps {
   script: string;
   voiceoverUrl?: string;
   backgroundVideoUrl?: string;
+  clips?: BackgroundClip[];
   style: string;
+  templateId?: string;
 }
 
 export const BrainrotVideo: React.FC<BrainrotVideoProps> = ({
   script,
   voiceoverUrl,
   backgroundVideoUrl,
+  clips,
   style,
+  templateId = 'classic-brainrot',
 }) => {
   const { durationInFrames } = useVideoConfig();
 
-  return (
-    <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      {/* Layer 1: Background */}
-      <Background videoUrl={backgroundVideoUrl} style={style} />
+  const sharedProps = {
+    script,
+    voiceoverUrl,
+    backgroundVideoUrl,
+    clips,
+    style,
+    durationInFrames,
+  };
 
-      {/* Layer 2: Captions */}
-      <Captions script={script} startFrame={0} endFrame={durationInFrames} />
-
-      {/* Layer 3: Audio */}
-      {voiceoverUrl && <Audio src={voiceoverUrl} volume={1} />}
-    </AbsoluteFill>
-  );
+  switch (templateId) {
+    case 'split-story':
+      return <SplitStory {...sharedProps} />;
+    case 'split-character':
+      return <SplitCharacter {...sharedProps} />;
+    case 'cinematic':
+      return <CinematicFull {...sharedProps} />;
+    case 'classic-brainrot':
+    default:
+      return <ClassicBrainrot {...sharedProps} />;
+  }
 };
