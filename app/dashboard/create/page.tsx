@@ -483,6 +483,7 @@ export default function CreateVideoPage() {
                   script={generatedScript}
                   voiceoverUrl={voiceoverUrl || undefined}
                   style={selectedTemplate?.slug || ''}
+                  topic={topic}
                   durationInSeconds={duration}
                 />
 

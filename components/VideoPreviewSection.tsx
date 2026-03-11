@@ -5,6 +5,7 @@ import { Player } from '@remotion/player';
 import { BrainrotVideo } from '@/remotion/BrainrotVideo';
 import { VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS } from '@/remotion/constants';
 import { VIDEO_TEMPLATES, BackgroundClip, VideoTemplate } from '@/remotion/type';
+import { useAudioDuration } from '@/hooks/useAudioDuration';
 import { Button } from '@/components/ui/button';
 import { Play, Loader2, RefreshCw, Monitor } from 'lucide-react';
 
@@ -12,6 +13,7 @@ interface VideoPreviewSectionProps {
   script: string;
   voiceoverUrl?: string;
   style: string;
+  topic?: string;
   durationInSeconds?: number;
 }
 
@@ -19,6 +21,7 @@ export function VideoPreviewSection({
   script,
   voiceoverUrl,
   style,
+  topic,
   durationInSeconds,
 }: VideoPreviewSectionProps) {
   const [backgroundVideoUrl, setBackgroundVideoUrl] = useState<string | null>(null);
@@ -28,16 +31,22 @@ export function VideoPreviewSection({
   const [error, setError] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState('classic-brainrot');
 
+  // Detect actual audio duration
+  const audioDuration = useAudioDuration(voiceoverUrl);
+
+  // Use actual audio duration if available, otherwise estimate
   const wordCount = script.split(/\s+/).filter((w) => w.length > 0).length;
   const estimatedSeconds = durationInSeconds || Math.ceil(wordCount / 2.5);
-  const durationInFrames = Math.max(estimatedSeconds * VIDEO_FPS, VIDEO_FPS);
+  const actualSeconds = audioDuration || estimatedSeconds;
+
+  // Add 1 second buffer at end so video doesn't cut off abruptly
+  const durationInFrames = Math.max(Math.ceil((actualSeconds + 1) * VIDEO_FPS), VIDEO_FPS);
 
   const fetchBackgrounds = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Fetch multiple clips
       const template = VIDEO_TEMPLATES.find(
         (t: VideoTemplate) => t.id === selectedTemplate
       );
@@ -46,14 +55,14 @@ export function VideoPreviewSection({
         template?.layout === 'split-story' ||
         template?.layout === 'split-character';
 
-      const mode = isGameplay ? 'gameplay' : 'multiple';
+      const mode = isGameplay ? 'multiple' : 'multiple';
+      const topicParam = topic ? `&topic=${encodeURIComponent(topic)}` : '';
       const res = await fetch(
-        `/api/get-background-video?style=${encodeURIComponent(style)}&mode=${mode}&count=3`
+        `/api/get-background-video?style=${encodeURIComponent(style)}&mode=${mode}&count=3${topicParam}`
       );
       const data = await res.json();
 
       if (data.urls && data.urls.length > 0) {
-        // Split clips across the duration
         const framesPerClip = Math.floor(durationInFrames / data.urls.length);
         const newClips: BackgroundClip[] = data.urls.map(
           (url: string, i: number) => ({
@@ -62,7 +71,7 @@ export function VideoPreviewSection({
             endFrame:
               i === data.urls.length - 1
                 ? durationInFrames
-                : (i + 1) * framesPerClip + 15, // 15 frame overlap for crossfade
+                : (i + 1) * framesPerClip + 15,
           })
         );
         setClips(newClips);
@@ -78,13 +87,7 @@ export function VideoPreviewSection({
 
     setLoading(false);
     setShowPreview(true);
-  }, [style, selectedTemplate, durationInFrames]);
-
-  const refreshBackgrounds = useCallback(async () => {
-    setLoading(true);
-    await fetchBackgrounds();
-    setLoading(false);
-  }, [fetchBackgrounds]);
+  }, [style, topic, selectedTemplate, durationInFrames]);
 
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6 backdrop-blur">
@@ -96,12 +99,19 @@ export function VideoPreviewSection({
           </div>
           <div>
             <h3 className="font-semibold text-white">Video Preview</h3>
-            <p className="text-sm text-gray-400">Pick a layout, then preview</p>
+            <p className="text-sm text-gray-400">
+              Pick a layout, then preview
+              {audioDuration && (
+                <span className="text-purple-400">
+                  {' '}• Audio: {audioDuration.toFixed(1)}s detected
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {VIDEO_TEMPLATES.map((template: VideoTemplate) => (
+          {VIDEO_TEMPLATES.map((template) => (
             <button
               key={template.id}
               onClick={() => {
@@ -134,7 +144,7 @@ export function VideoPreviewSection({
         </div>
       </div>
 
-      {/* Preview Button or Player */}
+      {/* Preview */}
       {!showPreview ? (
         <Button
           onClick={fetchBackgrounds}
@@ -157,12 +167,14 @@ export function VideoPreviewSection({
         <>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm text-gray-400">
-              {estimatedSeconds}s • {wordCount} words • {VIDEO_FPS}fps
+              {actualSeconds.toFixed(1)}s
+              {audioDuration ? ' (from audio)' : ' (estimated)'}
+              {' '}• {wordCount} words • {VIDEO_FPS}fps
             </p>
             <Button
               variant="outline"
               size="sm"
-              onClick={refreshBackgrounds}
+              onClick={fetchBackgrounds}
               disabled={loading}
               className="border-gray-700 text-gray-300 hover:text-white"
             >
@@ -215,4 +227,4 @@ export function VideoPreviewSection({
       )}
     </div>
   );
-}
+}   
