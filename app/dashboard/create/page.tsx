@@ -1,5 +1,6 @@
 'use client';
 
+import { VideoDownloader } from '@/components/VideoDownloader';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -480,6 +481,14 @@ export default function CreateVideoPage() {
             durationInSeconds={selectedDuration}
           />
 
+          {/* Download */}
+          <VideoDownloader
+            script={script}
+            style={selectedStyle}
+            voiceoverUrl={voiceoverUrl}
+            title={generatedTitle}
+          />
+
           {/* Actions */}
           <div className="flex gap-3">
             <button
@@ -499,4 +508,4 @@ export default function CreateVideoPage() {
       )}
     </div>
   );
-}   
+}
