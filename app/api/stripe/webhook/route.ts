@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type Stripe from 'stripe';
 import { getStripe, getPlanByPriceId, PLANS } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
+import type Stripe from 'stripe';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -22,15 +22,13 @@ export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    console.error('STRIPE_WEBHOOK_SECRET not set');
     return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
   }
 
   let event;
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+  } catch {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
@@ -45,9 +43,12 @@ export async function POST(req: NextRequest) {
 
         if (!userId || !subscriptionId) break;
 
-        // Get subscription to find the plan
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = (subscription as any).items?.data[0]?.price.id;
+        const subscription = (await stripe.subscriptions.retrieve(
+          subscriptionId
+        )) as Stripe.Subscription;
+        const currentPeriodEnd = (subscription as any)
+          .current_period_end as number;
+        const priceId = subscription.items.data[0]?.price.id;
         const plan = priceId ? getPlanByPriceId(priceId) : 'free';
         const credits = PLANS[plan].credits;
 
@@ -58,11 +59,9 @@ export async function POST(req: NextRequest) {
             stripe_subscription_id: subscriptionId,
             credits_limit: credits,
             credits_used: 0,
-            plan_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            plan_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
           })
           .eq('user_id', userId);
-
-        console.log(`User ${userId} upgraded to ${plan}`);
         break;
       }
 
@@ -70,7 +69,6 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object;
         const customerId = subscription.customer as string;
 
-        // Find user by stripe customer id
         const { data: profile } = await supabase
           .from('profiles')
           .select('user_id')
@@ -79,18 +77,19 @@ export async function POST(req: NextRequest) {
 
         if (!profile) break;
 
-        const priceId = (subscription as any).items?.data[0]?.price.id;
+        const priceId = subscription.items.data[0]?.price.id;
         const plan = priceId ? getPlanByPriceId(priceId) : 'free';
         const credits = PLANS[plan].credits;
+        const currentPeriodEnd = (subscription as any)
+          .current_period_end as number;
 
         const updateData: Record<string, unknown> = {
           plan,
           credits_limit: credits,
           stripe_subscription_id: subscription.id,
-          plan_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          plan_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
         };
 
-        // Reset credits on new billing period
         if (subscription.status === 'active') {
           updateData.credits_used = 0;
         }
@@ -99,8 +98,6 @@ export async function POST(req: NextRequest) {
           .from('profiles')
           .update(updateData)
           .eq('user_id', profile.user_id);
-
-        console.log(`User ${profile.user_id} subscription updated to ${plan}`);
         break;
       }
 
@@ -125,20 +122,13 @@ export async function POST(req: NextRequest) {
             plan_period_end: null,
           })
           .eq('user_id', profile.user_id);
-
-        console.log(`User ${profile.user_id} downgraded to free`);
         break;
       }
 
       case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as Stripe.Invoice & {
-          subscription?: string | Stripe.Subscription | null;
-        };
+        const invoice = event.data.object;
         const customerId = invoice.customer as string;
-        const subscriptionId =
-          typeof invoice.subscription === 'string'
-            ? invoice.subscription
-            : invoice.subscription?.id;
+        const subscriptionId = (invoice as any).subscription as string;
 
         if (!subscriptionId) break;
 
@@ -150,9 +140,12 @@ export async function POST(req: NextRequest) {
 
         if (!profile) break;
 
-        // Reset credits on successful recurring payment
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = (subscription as any).items?.data[0]?.price.id;
+        const subscription = (await stripe.subscriptions.retrieve(
+          subscriptionId
+        )) as Stripe.Subscription;
+        const currentPeriodEnd = (subscription as any)
+          .current_period_end as number;
+        const priceId = subscription.items.data[0]?.price.id;
         const plan = priceId ? getPlanByPriceId(priceId) : 'free';
         const credits = PLANS[plan].credits;
 
@@ -161,16 +154,11 @@ export async function POST(req: NextRequest) {
           .update({
             credits_used: 0,
             credits_limit: credits,
-            plan_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            plan_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
           })
           .eq('user_id', profile.user_id);
-
-        console.log(`User ${profile.user_id} credits reset on invoice payment`);
         break;
       }
-
-      default:
-        console.log(`Unhandled event: ${event.type}`);
     }
   } catch (err) {
     console.error('Webhook handler error:', err);

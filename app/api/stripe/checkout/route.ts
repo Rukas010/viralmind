@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripe, PLANS, PlanId } from '@/lib/stripe';
+import { getStripe, PLANS } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 
 function getSupabaseAdmin() {
@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
     const token = authHeader.split(' ')[1];
     const supabase = getSupabaseAdmin();
 
-    // Verify user
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -31,15 +30,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    const typedPlan: PlanId = plan;
-    const priceId = PLANS[typedPlan].priceId;
+    const priceId = PLANS[plan as 'pro' | 'ultra'].priceId;
     if (!priceId) {
       return NextResponse.json({ error: 'Price not configured' }, { status: 500 });
     }
 
     const stripe = getStripe();
 
-    // Get or create Stripe customer
     const { data: profile } = await supabase
       .from('profiles')
       .select('stripe_customer_id')
@@ -61,7 +58,6 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id);
     }
 
-    // Create checkout session
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
     const session = await stripe.checkout.sessions.create({
@@ -80,6 +76,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Checkout error:', error);
-    return NextResponse.json({ error: 'Failed to create checkout' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to create checkout' },
+      { status: 500 }
+    );
   }
 }
