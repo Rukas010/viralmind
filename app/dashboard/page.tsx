@@ -1,154 +1,205 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { supabase } from '@/lib/supabase'
-import { getProfile } from '@/lib/auth'
-import type { Profile, Video } from '@/lib/supabase'
-import { Film, PlusCircle, Zap, Clock, Download } from 'lucide-react'
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { getCurrentUser, getProfile } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+import {
+  Plus, Film, ArrowRight, Clock,
+  CheckCircle2, Loader2, AlertCircle,
+} from 'lucide-react';
+
+interface Profile {
+  display_name: string;
+  plan: string;
+  credits_used: number;
+  credits_limit: number;
+}
+
+interface Video {
+  id: string;
+  title: string;
+  style: string;
+  status: string;
+  created_at: string;
+}
 
 export default function DashboardOverview() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [stats, setStats] = useState({ total: 0, ready: 0, generating: 0 })
-  const [recentVideos, setRecentVideos] = useState<Video[]>([])
-  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const p = await getProfile()
-      if (!p) return
-      setProfile(p)
+      const user = await getCurrentUser();
+      if (!user) return;
 
-      const { data: videos } = await supabase
+      const p = await getProfile();
+      if (p) setProfile(p as Profile);
+
+      const { data } = await supabase
         .from('videos')
-        .select('*')
-        .eq('user_id', p.user_id)
+        .select('id, title, style, status, created_at')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
+        .limit(5);
 
-      const list = (videos ?? []) as Video[]
-      setRecentVideos(list.slice(0, 5))
-      setStats({
-        total: list.length,
-        ready: list.filter((v) => v.status === 'ready').length,
-        generating: list.filter((v) => v.status === 'generating').length,
-      })
-      setLoading(false)
+      if (data) setVideos(data);
+      setLoading(false);
     }
-    load()
-  }, [])
+    load();
+  }, []);
+
+  const totalVideos = videos.length;
+  const readyCount = videos.filter((v) => v.status === 'ready').length;
+  const generatingCount = videos.filter((v) => v.status === 'generating').length;
+  const creditsLeft = (profile?.credits_limit || 3) - (profile?.credits_used || 0);
+
+  const statusIcon = (status: string) => {
+    switch (status) {
+      case 'ready': return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+      case 'generating': return <Loader2 className="h-3.5 w-3.5 text-amber-500 animate-spin" />;
+      case 'failed': return <AlertCircle className="h-3.5 w-3.5 text-red-500" />;
+      default: return <Clock className="h-3.5 w-3.5 text-zinc-400" />;
+    }
+  };
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 space-y-6">
-        <Skeleton className="h-8 w-64 bg-gray-800" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 bg-gray-800 rounded-xl" />)}
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg animate-pulse" />
+          ))}
         </div>
       </div>
-    )
+    );
   }
 
-  const statCards = [
-    { label: 'Total Videos', value: stats.total, icon: Film, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Ready', value: stats.ready, icon: Download, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { label: 'Generating', value: stats.generating, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { label: 'Credits Left', value: (profile?.credits_limit || 3) - (profile?.credits_used || 0), icon: Zap, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  ]
-
   return (
-    <div className="p-6 lg:p-8 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Welcome back, {profile?.display_name || 'Creator'} 👋</h1>
-        <p className="mt-1 text-gray-400">Here&apos;s what&apos;s happening with your videos.</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">
+            Welcome back{profile?.display_name ? `, ${profile.display_name}` : ''}
+          </h1>
+          <p className="text-[13px] text-zinc-500 mt-0.5">
+            Here&apos;s what&apos;s happening with your videos.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/create"
+          className="hidden sm:inline-flex items-center gap-1.5 text-[13px] font-medium bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" /> New video
+        </Link>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {statCards.map((stat) => (
-          <Card key={stat.label} className="border-gray-800 bg-gray-900/50 backdrop-blur">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-gray-500 uppercase tracking-wide">{stat.label}</span>
-                <div className={`h-8 w-8 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-            </CardContent>
-          </Card>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'Total videos', value: totalVideos, color: 'text-zinc-900 dark:text-white' },
+          { label: 'Ready', value: readyCount, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Generating', value: generatingCount, color: 'text-amber-600 dark:text-amber-400' },
+          { label: 'Credits left', value: creditsLeft, color: 'text-purple-600 dark:text-purple-400' },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-4"
+          >
+            <p className="text-[12px] text-zinc-500 mb-1">{stat.label}</p>
+            <p className={`text-2xl font-semibold ${stat.color}`}>{stat.value}</p>
+          </div>
         ))}
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4 mb-8">
-        <Link href="/dashboard/create">
-          <Card className="border-gray-800 bg-gray-900/50 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition">
-                <PlusCircle className="h-6 w-6 text-purple-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Create New Video</h3>
-                <p className="text-sm text-gray-400">Pick a style, enter a topic, let AI do the rest</p>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link
+          href="/dashboard/create"
+          className="group flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-4 hover:border-purple-300 dark:hover:border-purple-800 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20">
+              <Plus className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-zinc-900 dark:text-white">Create new video</p>
+              <p className="text-[12px] text-zinc-500">Start the AI video wizard</p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-zinc-300 dark:text-zinc-700 group-hover:text-purple-500 transition-colors" />
         </Link>
-        <Link href="/dashboard/videos">
-          <Card className="border-gray-800 bg-gray-900/50 hover:border-blue-500/50 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition">
-                <Film className="h-6 w-6 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">My Videos</h3>
-                <p className="text-sm text-gray-400">View, download, or manage your videos</p>
-              </div>
-            </CardContent>
-          </Card>
+
+        <Link
+          href="/dashboard/videos"
+          className="group flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-4 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+              <Film className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-zinc-900 dark:text-white">My Videos</p>
+              <p className="text-[12px] text-zinc-500">{totalVideos} video{totalVideos !== 1 ? 's' : ''} created</p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-zinc-300 dark:text-zinc-700 group-hover:text-zinc-500 transition-colors" />
         </Link>
       </div>
 
-      <h2 className="text-lg font-semibold text-white mb-4">Recent Videos</h2>
-      {recentVideos.length === 0 ? (
-        <Card className="border-gray-800 bg-gray-900/50">
-          <CardContent className="py-12 text-center">
-            <Film className="h-10 w-10 text-gray-600 mx-auto mb-3" />
-            <p className="text-white mb-1">No videos yet</p>
-            <p className="text-sm text-gray-500 mb-4">Create your first viral video in 60 seconds</p>
-            <Link href="/dashboard/create">
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-                <PlusCircle className="mr-2 h-4 w-4" />Create Video
-              </Button>
+      {/* Recent videos */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Recent videos</h2>
+          {videos.length > 0 && (
+            <Link href="/dashboard/videos" className="text-[12px] text-purple-600 dark:text-purple-400 hover:underline">
+              View all
             </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {recentVideos.map((video) => (
-            <Card key={video.id} className="border-gray-800 bg-gray-900/50">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-gray-800 flex items-center justify-center">
-                    <Film className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{video.title}</p>
-                    <p className="text-xs text-gray-500">{video.style} • {new Date(video.created_at).toLocaleDateString()}</p>
+          )}
+        </div>
+
+        {videos.length === 0 ? (
+          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-8 text-center">
+            <p className="text-sm text-zinc-500 mb-3">No videos yet</p>
+            <Link
+              href="/dashboard/create"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-purple-600 dark:text-purple-400 hover:underline"
+            >
+              Create your first video <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
+            {videos.map((video) => (
+              <div key={video.id} className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  {statusIcon(video.status)}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-white truncate">{video.title}</p>
+                    <p className="text-[12px] text-zinc-400">
+                      {video.style} • {new Date(video.created_at).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  video.status === 'ready' ? 'bg-green-500/10 text-green-400' :
-                  video.status === 'generating' ? 'bg-amber-500/10 text-amber-400' :
-                  video.status === 'failed' ? 'bg-red-500/10 text-red-400' :
-                  'bg-gray-700 text-gray-400'
-                }`}>{video.status}</span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${
+                  video.status === 'ready'
+                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
+                    : video.status === 'generating'
+                    ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
+                    : video.status === 'failed'
+                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10'
+                    : 'text-zinc-500 bg-zinc-100 dark:bg-zinc-800'
+                }`}>
+                  {video.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }
