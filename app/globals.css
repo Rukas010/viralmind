@@ -15,7 +15,7 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -43,10 +43,6 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -72,7 +68,7 @@ html {
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar-background: oklch(0.985 0 0);
+  --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -100,20 +96,24 @@ html {
   --destructive: oklch(0.396 0.141 25.723);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar-background: oklch(0.205 0 0);
+  --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @layer base {
@@ -124,75 +124,15 @@ html {
     @apply bg-background text-foreground;
   }
 }
-/* ====== Landing Page Animations ====== */
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
+/* ====== Minimal Animations ====== */
 
-@keyframes float-reverse {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(20px) rotate(3deg); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.05); }
-}
-
-@keyframes gradient-x {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(30px); }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.animate-float { animation: float 6s ease-in-out infinite; }
-.animate-float-reverse { animation: float-reverse 7s ease-in-out infinite; }
-.animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
-.animate-gradient-x { animation: gradient-x 6s ease infinite; background-size: 200% 200%; }
-.animate-shimmer { animation: shimmer 3s linear infinite; background-size: 200% 100%; }
-.animate-fade-up { animation: fade-up 0.8s ease-out forwards; }
-.animate-spin-slow { animation: spin-slow 20s linear infinite; }
-
-.bg-grid-pattern {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size: 64px 64px;
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, #a855f7, #ec4899, #a855f7);
-  background-size: 200% 200%;
-  animation: gradient-x 4s ease infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.glass-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(168, 85, 247, 0.3);
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+  opacity: 0;
 }
