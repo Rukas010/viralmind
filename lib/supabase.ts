@@ -13,6 +13,10 @@ export type Profile = {
   plan: string
   credits_used: number
   credits_limit: number
+  // Billing-related fields are nullable in the database
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  plan_period_end: string | null
   created_at: string
   updated_at: string
 }
