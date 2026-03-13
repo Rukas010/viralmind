@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getCurrentUser, getProfile } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -35,7 +35,7 @@ const PLANS = [
   },
 ];
 
-export default function SettingsPage() {
+function SettingsContent() {
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState('');
@@ -392,5 +392,19 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={(
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+        </div>
+      )}
+    >
+      <SettingsContent />
+    </Suspense>
   );
 }
