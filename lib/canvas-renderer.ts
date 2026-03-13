@@ -470,8 +470,8 @@ export interface RenderConfig {
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
   
-     // Fill color
-     if (isActive) {
+    // Fill color
+    if (isActive) {
         // Active word: bright yellow
         ctx.fillStyle = '#FACC15';
       } else if (isPast) {
@@ -553,7 +553,7 @@ export interface RenderConfig {
     stream.getTracks().forEach((track) => track.stop());
   }
   
-  // ─── Export Helpers ──────────────────────────────────────────
+  // ─── Export Helper ───────────────────────────────────────────
   
   export function downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
@@ -564,43 +564,4 @@ export interface RenderConfig {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }
-
-  // Thin wrapper used by UI components. Keeps the public API simple
-  // while delegating to the more configurable `renderVideo` function.
-  export interface SimpleRenderOptions {
-    script: string;
-    style: string;
-    voiceoverUrl?: string;
-    durationInSeconds: number;
-    onProgress?: (progress: number) => void; // 0–1 range for UI
-  }
-
-  export async function renderVideoToBlob(options: SimpleRenderOptions): Promise<Blob> {
-    const { script, style, voiceoverUrl, durationInSeconds, onProgress } = options;
-
-    // For now, we require a voiceover track – the low-level renderer
-    // is driven by the audio duration. If needed, we can later extend
-    // this to support silent videos using `durationInSeconds`.
-    if (!voiceoverUrl) {
-      throw new Error('Voiceover URL is required to render the video.');
-    }
-
-    // TODO: use `style` and `durationInSeconds` to customize backgrounds
-    // and pacing. For now we rely entirely on the audio track for timing
-    // and use the fallback gradient background when no clips are provided.
-
-    const blob = await renderVideo({
-      script,
-      voiceoverUrl,
-      backgroundUrls: [],
-      musicUrl: undefined,
-      onProgress: (percent) => {
-        // Core renderer reports 0–100; the UI expects 0–1.
-        onProgress?.(percent / 100);
-      },
-      watermark: true,
-    });
-
-    return blob;
   }
