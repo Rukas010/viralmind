@@ -8,19 +8,19 @@ export function getStripe() {
 
 export const PLANS = {
   free: {
-    name: 'Free',
+    name: 'ViralEye Free',
     credits: 3,
     price: 0,
     priceId: null,
   },
   pro: {
-    name: 'Pro',
+    name: 'ViralEye Pro',
     credits: 30,
     price: 19,
     priceId: process.env.STRIPE_PRO_PRICE_ID || null,
   },
   ultra: {
-    name: 'Ultra',
+    name: 'ViralEye Ultra',
     credits: 999,
     price: 49,
     priceId: process.env.STRIPE_ULTRA_PRICE_ID || null,

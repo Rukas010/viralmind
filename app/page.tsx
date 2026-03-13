@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 import {
-  Zap, ArrowRight, Check, Menu, X,
+  Eye, ArrowRight, Check, Menu, X,
   Wand2, Mic, Download, Sparkles, Play,
   ChevronDown, Clock, Layers, Volume2,
 } from 'lucide-react';
@@ -81,7 +82,7 @@ const PLANS = [
 ];
 
 const FAQS = [
-  { q: 'What does Viralmind actually do?', a: 'You enter a topic, pick a style, and Viralmind generates a complete short-form video — script, voiceover, background footage, captions, everything. You download the MP4 and post it.' },
+  { q: 'What does ViralEye actually do?', a: 'You enter a topic, pick a style, and ViralEye generates a complete short-form video — script, voiceover, background footage, captions, everything. You download the MP4 and post it.' },
   { q: 'Do I need editing experience?', a: 'No. The entire workflow is automated. You make creative decisions and the AI handles production.' },
   { q: 'Do I need to show my face?', a: 'No. Every format is faceless by design — AI voice, stock footage, and animated captions. You stay behind the scenes.' },
   { q: 'Can I monetize the videos?', a: 'Yes. Everything you create is yours. Background footage comes from royalty-free sources. Use them on your channels, for clients, wherever.' },
@@ -100,10 +101,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-sm border-b border-zinc-200 dark:border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href="#" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-600">
-              <Zap className="h-3.5 w-3.5 text-white" />
-            </div>
-            <span className="text-sm font-semibold tracking-tight">Viralmind</span>
+            <Logo size="md" />
           </a>
 
           <div className="hidden md:flex items-center gap-8">
@@ -165,7 +163,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-base text-zinc-500 dark:text-zinc-400 max-w-md leading-relaxed mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              Viralmind turns a topic into a ready-to-post TikTok, Reel, or Short. Script, voiceover, captions, footage — all handled by AI. No editing. No face needed.
+              Viral<span className="text-purple-600">Eye</span> turns a topic into a ready-to-post TikTok, Reel, or Short. Script, voiceover, captions, footage — all handled by AI. No editing. No face needed.
             </p>
 
             <div className="flex flex-wrap gap-3 mb-10 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
@@ -199,7 +197,7 @@ export default function LandingPage() {
                   <div className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
                   <div className="h-2.5 w-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
                 </div>
-                <span className="text-[11px] text-zinc-400 ml-2">viralmind.app/create</span>
+                <span className="text-[11px] text-zinc-400 ml-2">viraleye.ai/create</span>
               </div>
 
               <div className="p-5">
@@ -511,17 +509,17 @@ export default function LandingPage() {
       <footer className="border-t border-zinc-100 dark:border-white/[0.04] py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-purple-600">
-              <Zap className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-xs font-medium text-zinc-400">Viralmind</span>
+            <Logo size="sm" />
           </div>
           <div className="flex items-center gap-6">
             <a href="#features" className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Features</a>
             <a href="#templates" className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Templates</a>
             <a href="#pricing" className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Pricing</a>
           </div>
-          <p className="text-xs text-zinc-400 dark:text-zinc-700">© {new Date().getFullYear()} Viralmind</p>
+          <div className="flex flex-col items-center sm:items-end gap-1">
+            <p className="text-xs text-zinc-400 dark:text-zinc-700">© {new Date().getFullYear()} ViralEye. All rights reserved.</p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-600">viraleye.ai</p>
+          </div>
         </div>
       </footer>
     </div>

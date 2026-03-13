@@ -42,7 +42,7 @@ export default function SignupPage() {
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-600">
             <Zap className="h-3.5 w-3.5 text-white" />
           </div>
-          <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">Viralmind</span>
+          <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">ViralEye</span>
         </Link>
         <ThemeToggle />
       </div>

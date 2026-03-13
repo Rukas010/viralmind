@@ -1,11 +1,11 @@
 'use client';
 
-import { VideoDownloader } from '@/components/VideoDownloader';
+import VideoDownloader from '@/components/VideoDownloader';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getProfile } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase, type Profile } from '@/lib/supabase';
 import { toast } from 'sonner';
 import {
   ArrowLeft, ArrowRight, Check, Loader2,
@@ -69,18 +69,37 @@ export default function CreateVideoPage() {
   const [generatingVoiceover, setGeneratingVoiceover] = useState(false);
   const [creditsLeft, setCreditsLeft] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [backgroundUrls, setBackgroundUrls] = useState<string[]>([]);
+  const [userPlan, setUserPlan] = useState<string>('free');
 
   useEffect(() => {
     async function load() {
       const profile = await getProfile();
       if (profile) {
-        const p = profile as { credits_used: number; credits_limit: number };
+        const p = profile as Profile;
         setCreditsLeft(p.credits_limit - p.credits_used);
+        setUserPlan(p.plan);
       }
       setLoading(false);
     }
     load();
   }, []);
+
+  const fetchBackgrounds = async (style: string, topic: string) => {
+    try {
+      const res = await fetch(
+        `/api/get-background-video?style=${encodeURIComponent(
+          style
+        )}&mode=multiple&count=4&topic=${encodeURIComponent(topic)}`
+      );
+      const data = await res.json();
+      if (data.success && data.urls) {
+        setBackgroundUrls(data.urls as string[]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch backgrounds:', err);
+    }
+  };
 
   const currentStepIndex = STEP_ORDER.indexOf(step);
 
@@ -160,6 +179,9 @@ export default function CreateVideoPage() {
 
   const handleSaveScript = async () => {
     setStep('done');
+    if (selectedStyle && topic) {
+      fetchBackgrounds(selectedStyle, topic);
+    }
     toast.success('Script saved');
   };
 
@@ -199,6 +221,7 @@ export default function CreateVideoPage() {
     setVideoId('');
     setVoiceoverUrl('');
     setSelectedDuration(60);
+    setBackgroundUrls([]);
   };
 
   const wordCount = script.split(/\s+/).filter((w) => w.length > 0).length;
@@ -484,9 +507,10 @@ export default function CreateVideoPage() {
           {/* Download */}
           <VideoDownloader
             script={script}
-            style={selectedStyle}
             voiceoverUrl={voiceoverUrl}
+            backgroundUrls={backgroundUrls}
             title={generatedTitle}
+            watermark={userPlan === 'free'}
           />
 
           {/* Actions */}

@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         user_id: user.id,
         plan,
+        app: 'viraleye',
       },
     });
 

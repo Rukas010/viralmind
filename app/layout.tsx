@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Viralmind — AI Short-Form Video Generator",
+  title: "ViralEye — AI Short-Form Video Generator",
   description: "Generate viral TikToks, Reels, and Shorts with AI. No editing required.",
 };
 
