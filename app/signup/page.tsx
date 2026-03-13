@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { signUp } from '@/lib/auth';
-import { Zap, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -39,10 +40,7 @@ export default function SignupPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-600">
-            <Zap className="h-3.5 w-3.5 text-white" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">ViralEye</span>
+          <Logo size="sm" />
         </Link>
         <ThemeToggle />
       </div>
@@ -52,7 +50,7 @@ export default function SignupPage() {
         <div className="w-full max-w-sm">
           <div className="mb-8">
             <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white mb-1">
-              Create your account
+              Create your ViralEye account
             </h1>
             <p className="text-[14px] text-zinc-500">
               Start making AI-generated videos for free
